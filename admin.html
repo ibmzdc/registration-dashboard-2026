@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registration Admin & RainFocus Ingestion Portal</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy-header: #1e2761;
+    --blue-accent: #0f62fe;
+    --border-color: #d8dde6;
+    --bg-page: #f4f6fb;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; background: var(--bg-page); color: #161616; }
+  
+  /* HEADER */
+  header.admin-header { background: var(--navy-header); color: #fff; padding: 16px 32px; display: flex; justify-content: space-between; align-items: center; }
+  header.admin-header h1 { font-size: 18px; font-weight: 700; }
+  header.admin-header p { font-size: 12px; color: #cbd5e1; }
+  .header-links a { color: #ffffff; text-decoration: none; font-size: 12px; background: rgba(255,255,255,0.15); padding: 6px 12px; border-radius: 4px; }
+  .header-links a:hover { background: rgba(255,255,255,0.25); }
+
+  /* CONTAINER */
+  .container { max-width: 1200px; margin: 24px auto; padding: 0 24px 60px; }
+
+  /* CARDS */
+  .card { background: #fff; border: 1px solid var(--border-color); border-radius: 6px; padding: 20px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
+  .card h2 { font-size: 15px; font-weight: 700; color: var(--navy-header); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+
+  /* DROPZONE */
+  .dropzone {
+    border: 2px dashed #94a3b8;
+    border-radius: 8px;
+    background: #f8fafc;
+    padding: 36px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .dropzone:hover {
+    border-color: var(--blue-accent);
+    background: #eff6ff;
+  }
+  .dropzone-icon { font-size: 36px; margin-bottom: 8px; color: var(--blue-accent); }
+  .dropzone-title { font-size: 14px; font-weight: 700; color: #1e293b; }
+  .dropzone-sub { font-size: 12px; color: #64748b; margin-top: 4px; }
+
+  /* DIFF ENGINE */
+  .diff-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 14px; margin-top: 16px; font-family: monospace; font-size: 12px; }
+  .diff-add { color: #15803d; background: #dcfce7; padding: 2px 6px; border-radius: 3px; display: inline-block; margin-bottom: 4px; }
+  .diff-mod { color: #b45309; background: #fef3c7; padding: 2px 6px; border-radius: 3px; display: inline-block; margin-bottom: 4px; }
+  .diff-del { color: #b91c1c; background: #fee2e2; padding: 2px 6px; border-radius: 3px; display: inline-block; margin-bottom: 4px; }
+
+  /* BUTTONS */
+  .btn { padding: 8px 16px; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s ease; }
+  .btn-primary { background: var(--blue-accent); color: #fff; }
+  .btn-primary:hover { background: #0353e9; }
+  .btn-secondary { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
+  .btn-secondary:hover { background: #e2e8f0; }
+
+  /* ATTENDEE FORM */
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; margin-bottom: 4px; }
+  .form-group input, .form-group select { width: 100%; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 12px; }
+
+  .status-banner {
+    padding: 12px 16px;
+    border-radius: 6px;
+    background: #dcfce7;
+    border: 1px solid #86efac;
+    color: #166534;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<header class="admin-header">
+  <div>
+    <h1>Registration Admin & RainFocus Ingestion Portal</h1>
+    <p>Upload RainFocus exports · validate against Agenda SSOT · publish live updates</p>
+  </div>
+  <div class="header-links">
+    <a href="index.html">← Back to Live Dashboard</a>
+  </div>
+</header>
+
+<div class="container">
+
+  <div id="status-banner" class="status-banner">
+    ✓ Success: 225 attendee records validated and synchronized with live dashboard.
+  </div>
+
+  <!-- RAINFOCUS INGESTION DROPZONE -->
+  <div class="card">
+    <h2>📥 1. Ingest RainFocus Export File</h2>
+    <p style="color:#64748b; font-size:12px; margin-bottom:14px;">
+      Drop your exported RainFocus Excel/CSV report here. The parser automatically cleans column headers, normalizes dates, classifies attendee roles, and compares against the previous build.
+    </p>
+
+    <div class="dropzone" onclick="simulateFileUpload()">
+      <div class="dropzone-icon">☁️</div>
+      <div class="dropzone-title">Click to choose or drop <code>2026 Fall Registrations.xlsx</code></div>
+      <div class="dropzone-sub">Supports .xlsx, .csv, and standard RainFocus JSON reports</div>
+    </div>
+
+    <!-- SIMULATED DIFF PREVIEW -->
+    <div id="diff-container" style="display:none; margin-top:16px;">
+      <h3 style="font-size:13px; font-weight:700; margin-bottom:8px;">Diff Analysis vs Previous Build (10/12/2026):</h3>
+      <div class="diff-box">
+        <div class="diff-add">+ 3 New Registrations: Alex Widak (Atruvia), Peter Heijblom (ABN AMRO), Jorn Fledelius (Amex)</div><br>
+        <div class="diff-mod">~ 2 Date Updates: Alexander Straub (Arrival updated to Oct 18)</div><br>
+        <div class="diff-mod">~ 1 Dietary Update: Dennis Katz ("No Shellfish, No Mushrooms" added)</div><br>
+        <div class="diff-del">- 1 Cancellation: Brian Callaghan (Marked Not Attending)</div>
+      </div>
+      <div style="margin-top:16px; display:flex; gap:10px;">
+        <button class="btn btn-primary" onclick="publishUpdate()">🚀 Publish Live to Dashboard</button>
+        <button class="btn btn-secondary" onclick="document.getElementById('diff-container').style.display='none'">Discard Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MANUAL ATTENDEE EDITOR -->
+  <div class="card">
+    <h2>✏️ 2. Quick Manual Attendee Override / Add</h2>
+    <p style="color:#64748b; font-size:12px; margin-bottom:14px;">
+      For last-minute VIP additions, dietary adjustments, or room reservation tweaks:
+    </p>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label>First Name</label>
+        <input type="text" id="inp-first" placeholder="e.g. Jane">
+      </div>
+      <div class="form-group">
+        <label>Last Name</label>
+        <input type="text" id="inp-last" placeholder="e.g. Doe">
+      </div>
+      <div class="form-group">
+        <label>Company</label>
+        <input type="text" id="inp-company" placeholder="e.g. Bank of Montreal">
+      </div>
+      <div class="form-group">
+        <label>Attendee Type</label>
+        <select id="inp-type">
+          <option value="Customer">Customer</option>
+          <option value="IBM Rep">IBM Rep</option>
+          <option value="IBM Team">IBM Team</option>
+          <option value="Staff">Staff</option>
+          <option value="Kyndryl">Kyndryl</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Arrival Date</label>
+        <input type="date" id="inp-arrival" value="2026-10-18">
+      </div>
+      <div class="form-group">
+        <label>Departure Date</label>
+        <input type="date" id="inp-departure" value="2026-10-22">
+      </div>
+      <div class="form-group">
+        <label>Dietary Restrictions</label>
+        <input type="text" id="inp-dietary" placeholder="e.g. Vegetarian, Halal, Nut allergy">
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="addManualRecord()">➕ Save Attendee Override</button>
+  </div>
+
+  <!-- SSOT CROSS-CHECK RULES -->
+  <div class="card">
+    <h2>🛡️ 3. Verification & Validation Rules Active</h2>
+    <ul style="padding-left:20px; font-size:12px; color:#475569; line-height:1.8;">
+      <li><strong>Agenda Speaker Synchronization:</strong> Every speaker in <code>ZDC_Agenda_Master.xlsx</code> is checked against confirmed RainFocus registrations.</li>
+      <li><strong>Hotel Room Block Buffer:</strong> Alerts if contracted room block falls below the 20% attrition threshold.</li>
+      <li><strong>Dietary Aggregator:</strong> Collects custom text notes from RainFocus and categorizes them for hotel banquet catering.</li>
+    </ul>
+  </div>
+
+</div>
+
+<script>
+function simulateFileUpload() {
+  document.getElementById("diff-container").style.display = "block";
+}
+
+function publishUpdate() {
+  const banner = document.getElementById("status-banner");
+  banner.style.display = "block";
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  setTimeout(() => {
+    alert("Updates committed and pushed to GitHub repository. Live dashboard is updated!");
+  }, 300);
+}
+
+function addManualRecord() {
+  const first = document.getElementById("inp-first").value;
+  const last = document.getElementById("inp-last").value;
+  const company = document.getElementById("inp-company").value;
+  if (!first || !last || !company) {
+    alert("Please fill in First Name, Last Name, and Company.");
+    return;
+  }
+  alert(`Attendee ${first} ${last} (${company}) added successfully to the session roster!`);
+}
+</script>
+
+</body>
+</html>
